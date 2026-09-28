@@ -16,11 +16,11 @@ import type { ClientGrpc } from '@nestjs/microservices';
 import { PRODUCTS_SERVICE } from '../config/index.ts';
 import {
   PRODUCTS_SERVICE_NAME,
-  type CreateProductRequest,
   type ProductsServiceClient,
-  type UpdateProductRequest,
 } from '../generated/proto/products.ts';
 import { PaginationDto } from '../common/dtos/pagination.dto.ts';
+import { CreateProductDto } from './dtos/create-product.dto.ts';
+import { UpdateProductDto } from './dtos/update-product.dto.ts';
 
 @Controller('products')
 export class ProductsController implements OnModuleInit {
@@ -34,7 +34,7 @@ export class ProductsController implements OnModuleInit {
   }
 
   @Post()
-  createProduct(@Body() payload: CreateProductRequest) {
+  createProduct(@Body() payload: CreateProductDto) {
     return this.productsService.create(payload);
   }
 
@@ -53,7 +53,7 @@ export class ProductsController implements OnModuleInit {
   @Patch(':id')
   updateProduct(
     @Param('id', ParseIntPipe) id: number,
-    @Body() payload: Omit<UpdateProductRequest, 'id'>,
+    @Body() payload: UpdateProductDto,
   ) {
     return this.productsService.update({ ...payload, id });
   }
