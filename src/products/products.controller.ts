@@ -20,6 +20,7 @@ import {
   type ProductsServiceClient,
   type UpdateProductRequest,
 } from '../generated/proto/products.ts';
+import { PaginationDto } from '../common/dtos/pagination.dto.ts';
 
 @Controller('products')
 export class ProductsController implements OnModuleInit {
@@ -39,10 +40,9 @@ export class ProductsController implements OnModuleInit {
 
   @Get()
   findAllProducts(
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @Query() paginationDto: PaginationDto,
   ) {
-    return this.productsService.findAll({ page, limit });
+    return this.productsService.findAll(paginationDto);
   }
 
   @Get(':id')
