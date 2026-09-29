@@ -42,26 +42,37 @@ pnpm start:prod
 
 ## Endpoints
 
-| Método   | Ruta                              | Descripción                                   |
-| -------- | --------------------------------- | --------------------------------------------- |
-| `POST`   | `/api/products`                   | Crea un producto (`{ name, price }`)          |
-| `GET`    | `/api/products?page=1&limit=10`   | Lista productos paginados                     |
-| `GET`    | `/api/products/:id`               | Obtiene un producto                           |
-| `PATCH`  | `/api/products/:id`               | Actualiza un producto (`{ name?, price? }`)   |
-| `DELETE` | `/api/products/:id`               | Elimina un producto                           |
-| `POST`   | `/api/orders`                     | Crea una orden (`{ items: [{ productId, quantity }] }`) → **202** |
-| `GET`    | `/api/orders?page=1&limit=10&status=PENDING` | Lista órdenes paginadas            |
-| `GET`    | `/api/orders/:id`                 | Obtiene una orden con sus items               |
-| `PATCH`  | `/api/orders/:id`                 | Cambia el estado (`{ status }`)               |
+| Método   | Ruta | Descripción |
+| -------- | ---- | ----------- |
+| `POST`   | `/api/products` | Crea un producto (`{ nombre, codigo_sku, categoria, precio, stock_actual?, stock_minimo?, proveedor }`) |
+| `GET`    | `/api/products?page=1&limit=10` | Lista productos. Filtros opcionales: `categoria`, `proveedor`, `nombre`, `activo`, `stock_bajo` (`true`/`false`) |
+| `GET`    | `/api/products/:id` | Obtiene un producto |
+| `PATCH`  | `/api/products/:id` | Actualiza un producto (todo menos `stock_actual`) |
+| `DELETE` | `/api/products/:id` | Desactiva un producto (`activo = false`) |
+| `POST`   | `/api/products/:id/stock` | Ajusta el inventario (`{ tipo: "entrada" \| "salida", cantidad, motivo }`) |
+| `GET`    | `/api/alerts?estado=ACTIVA` | Lista alertas de stock bajo, con filtro opcional por estado |
+| `POST`   | `/api/purchase-orders` | Crea una orden de compra (`{ producto_id, proveedor, cantidad_solicitada, motivo? }`) → **202** |
+| `GET`    | `/api/purchase-orders?page=1&limit=10&estado=PENDIENTE` | Lista órdenes de compra |
+| `GET`    | `/api/purchase-orders/:id` | Obtiene una orden de compra |
+| `PATCH`  | `/api/purchase-orders/update-status-purchase/:id` | Cambia el estado (`{ estado, motivo? }`) |
 
-### Órdenes asíncronas (saga)
+### Alertas de stock bajo
 
-`POST /api/orders` responde **202 Accepted** con la orden en `AWAITING_VALIDATION`, sin precios ni total. `orders-ms` valida los productos con `products-ms` por RabbitMQ y la orden pasa a:
+`products-ms` crea una alerta `STOCK_BAJO` `ACTIVA` cuando `stock_actual <= stock_minimo` y la pasa a `RESUELTA` cuando el stock vuelve a superar el mínimo. Se evalúa en cada cambio de stock: ajustes, órdenes recibidas, alta de productos y seed.
 
-- `PENDING`: los items traen `price` y `name`, y la orden trae `totalAmount`.
-- `REJECTED`: con `rejectionReason`, por ejemplo `Products not found or unavailable: #9` o `Product validation timed out`.
+### Órdenes de compra (saga)
 
-El cliente consulta `GET /api/orders/:id` hasta ver uno de esos estados. `AWAITING_VALIDATION` y `REJECTED` los maneja solo la saga: un `PATCH` que mueva la orden hacia o desde esos estados responde 400.
+`POST /api/purchase-orders` responde **202 Accepted** con la orden en `EN_VALIDACION`. `orders-ms` valida el producto con `products-ms` por RabbitMQ y la orden pasa a `PENDIENTE` o a `RECHAZADA` (con `motivo`, por ejemplo `Product #9 not found or inactive` o `Product validation timed out`).
+
+Después, `PATCH /api/purchase-orders/update-status-purchase/:id` acepta:
+
+| `estado`    | Desde       | Notas |
+| ----------- | ----------- | ----- |
+| `APROBADA`  | `PENDIENTE` | |
+| `RECHAZADA` | `PENDIENTE` | `motivo` obligatorio |
+| `RECIBIDA`  | `APROBADA`  | `products-ms` suma `cantidad_solicitada` al stock y lo registra en el historial |
+
+Cualquier otro `estado` responde 400 por validación. Una transición que no parte del estado indicado también responde 400.
 
 Los errores gRPC del microservicio se traducen a códigos HTTP (por ejemplo, `NOT_FOUND` → 404 e `INVALID_ARGUMENT` → 400) con el cuerpo `{ statusCode, message }`.
 

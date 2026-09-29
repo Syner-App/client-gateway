@@ -6,6 +6,9 @@ import { ORDERS_PACKAGE_NAME } from '../generated/proto/orders.ts';
 import { envs } from '../config/envs.ts';
 import { PRODUCTS_PACKAGE_NAME } from '../generated/proto/products.ts';
 
+// snake_case fields and string enums, like the microservices
+const loader = { keepCase: true, enums: String };
+
 const grpcClients = ClientsModule.register([
     {
         name: ORDERS_SERVICE,
@@ -14,7 +17,7 @@ const grpcClients = ClientsModule.register([
             package: ORDERS_PACKAGE_NAME,
             protoPath: join(import.meta.dirname, '../proto/orders.proto'),
             url: `${envs.ordersMicroserviceHost}:${envs.ordersMicroservicePort}`,
-            loader: { enums: String },
+            loader,
         },
     },
     {
@@ -24,6 +27,7 @@ const grpcClients = ClientsModule.register([
             package: PRODUCTS_PACKAGE_NAME,
             protoPath: join(import.meta.dirname, '../proto/products.proto'),
             url: `${envs.productsMicroserviceHost}:${envs.productsMicroservicePort}`,
+            loader,
         },
     },
 ]);

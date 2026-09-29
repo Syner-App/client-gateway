@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-NestJS 12 HTTP API gateway. It exposes REST endpoints under the `/api` prefix and forwards each call over gRPC to backend microservices. Backends: `products-ms` (`../products-ms`, `/api/products`) and `orders-ms` (`../orders-ms`, `/api/orders`, PostgreSQL).
+NestJS 12 HTTP API gateway. It exposes REST endpoints under the `/api` prefix and forwards each call over gRPC to backend microservices. Backends: `products-ms` (`../products-ms`, `/api/products`, `/api/alerts`) and `orders-ms` (`../orders-ms`, `/api/purchase-orders`).
 
 ## Commands
 
@@ -30,8 +30,8 @@ Docker: `docker compose up -d --build` from the `syner/` root runs the whole sta
   - The controller injects `ClientGrpc` and calls `getService<XServiceClient>(X_SERVICE_NAME)` in `onModuleInit`.
   - Handlers return the client's `Observable` directly, and Nest subscribes to it.
   - Types and service or package name constants come from the generated ts-proto file.
-  - Route params are parsed with `ParseIntPipe` / `ParseUUIDPipe`. There's no global `ValidationPipe`; `OrdersController` applies one via `@UsePipes`, because protobufjs silently drops unknown enum strings (e.g. `status=FOO`) before the microservice could reject them.
-  - Proto enums are exchanged as strings: both client and server set `loader: { enums: String }`. Exclude ts-proto's `UNRECOGNIZED` member when validating (see `src/orders/enum/order.enum.ts`).
+  - Route params are parsed with `ParseIntPipe` / `ParseUUIDPipe`. There's no global `ValidationPipe`; every controller applies one via `@UsePipes`, because protobufjs silently drops unknown enum strings (e.g. `estado=FOO`) before the microservice could reject them, and query strings need converting (`@Type(() => Number)`, `@ToBoolean()` from `src/common/transforms/`).
+  - Fields are snake_case and proto enums are strings: both clients in `src/transport/grpc.module.ts` and the servers set `loader: { keepCase: true, enums: String }`, and `proto:gen` uses `snakeToCamel=false`. Build enum lists with `enumValues()` (`src/common/enum-values.ts`), which drops ts-proto's `UNRECOGNIZED` member.
 - **Proto contract.** `src/proto/products.proto` and `src/proto/orders.proto` are hand-maintained copies of `../products-ms/src/proto/products.proto` and `../orders-ms/src/proto/orders.proto`. Each pair must stay identical. After editing a proto, run `pnpm proto:gen`. Never edit `src/generated/` by hand.
 - **Error mapping.** `GrpcExceptionFilter` (`src/common/exceptions/`) is registered globally in `main.ts`:
   - It detects gRPC errors by shape (`{ code: number, details: string }`).
@@ -39,5 +39,5 @@ Docker: `docker compose up -d --build` from the `syner/` root runs the whole sta
   - It responds with `{ statusCode, message: details }`.
   - Every other exception goes to Nest's `BaseExceptionFilter`.
   - To make a new backend error surface with the right HTTP status, add its mapping to `GRPC_TO_HTTP_STATUS`.
-- **Orders are asynchronous (order saga).** `POST /api/orders` returns **202** with the order in `AWAITING_VALIDATION`: orders-ms validates the products with products-ms over RabbitMQ, and the order then moves to `PENDING` (with `price`/`name`/`totalAmount`) or `REJECTED` (with `rejectionReason`). Clients poll `GET /api/orders/:id`. `AWAITING_VALIDATION`/`REJECTED` are saga-owned: orders-ms answers `FAILED_PRECONDITION` (→ 400) to a `PATCH` that moves to or from them. `OrderItemDetail.price`/`name` are optional in the proto (unset until validated).
+- **Purchase orders are asynchronous (saga).** `POST /api/purchase-orders` returns **202** with the order in `EN_VALIDACION`: orders-ms validates the product with products-ms over RabbitMQ, and the order then moves to `PENDIENTE` or `RECHAZADA` (with `motivo`). `PATCH /api/purchase-orders/update-status-purchase/:id` takes `{ estado, motivo? }`: `UpdateStatusPurchaseDto` only allows `APROBADA`, `RECHAZADA` (motivo required via `@ValidateIf`) and `RECIBIDA`; orders-ms answers `FAILED_PRECONDITION` (→ 400) when the order is not in the required source state.
 - **Tests.** Unit tests mock the gRPC client by providing the injection token with `{ getService: () => ({...}) }`.
