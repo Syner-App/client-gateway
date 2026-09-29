@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-NestJS 12 HTTP API gateway. It exposes REST endpoints under the `/api` prefix and forwards each call over gRPC to backend microservices. Backends: `products-ms` (`../products-ms`, `/api/products`) and `order-ms` (`../order-ms`, `/api/orders`, PostgreSQL).
+NestJS 12 HTTP API gateway. It exposes REST endpoints under the `/api` prefix and forwards each call over gRPC to backend microservices. Backends: `products-ms` (`../products-ms`, `/api/products`) and `orders-ms` (`../orders-ms`, `/api/orders`, PostgreSQL).
 
 ## Commands
 
 Uses pnpm.
 
-- `pnpm start:dev`: runs in watch mode. Needs a `.env` (copy `.env.template`), a running `products-ms` at `PRODUCTS_MICROSERVICE_HOST:PRODUCTS_MICROSERVICE_PORT` and `order-ms` at `ORDERS_MICROSERVICE_HOST:ORDERS_MICROSERVICE_PORT`.
+- `pnpm start:dev`: runs in watch mode. Needs a `.env` (copy `.env.template`), a running `products-ms` at `PRODUCTS_MICROSERVICE_HOST:PRODUCTS_MICROSERVICE_PORT` and `orders-ms` at `ORDERS_MICROSERVICE_HOST:ORDERS_MICROSERVICE_PORT`.
 - `pnpm build`: `nest build`. Copies `**/*.proto` into `dist/`, because the gRPC client loads the `.proto` at runtime.
 - `pnpm lint`: runs oxlint with type-aware rules. `no-floating-promises` is an error.
 - `pnpm format`: runs Prettier.
@@ -32,12 +32,12 @@ Docker: `docker compose up -d --build` from the `syner/` root runs the whole sta
   - Types and service or package name constants come from the generated ts-proto file.
   - Route params are parsed with `ParseIntPipe` / `ParseUUIDPipe`. There's no global `ValidationPipe`; `OrdersController` applies one via `@UsePipes`, because protobufjs silently drops unknown enum strings (e.g. `status=FOO`) before the microservice could reject them.
   - Proto enums are exchanged as strings: both client and server set `loader: { enums: String }`. Exclude ts-proto's `UNRECOGNIZED` member when validating (see `src/orders/enum/order.enum.ts`).
-- **Proto contract.** `src/proto/products.proto` and `src/proto/orders.proto` are hand-maintained copies of `../products-ms/src/proto/products.proto` and `../order-ms/src/proto/orders.proto`. Each pair must stay identical. After editing a proto, run `pnpm proto:gen`. Never edit `src/generated/` by hand.
+- **Proto contract.** `src/proto/products.proto` and `src/proto/orders.proto` are hand-maintained copies of `../products-ms/src/proto/products.proto` and `../orders-ms/src/proto/orders.proto`. Each pair must stay identical. After editing a proto, run `pnpm proto:gen`. Never edit `src/generated/` by hand.
 - **Error mapping.** `GrpcExceptionFilter` (`src/common/exceptions/`) is registered globally in `main.ts`:
   - It detects gRPC errors by shape (`{ code: number, details: string }`).
   - It maps gRPC status codes to HTTP status codes, for example `NOT_FOUND` → 404 and `INVALID_ARGUMENT` → 400.
   - It responds with `{ statusCode, message: details }`.
   - Every other exception goes to Nest's `BaseExceptionFilter`.
   - To make a new backend error surface with the right HTTP status, add its mapping to `GRPC_TO_HTTP_STATUS`.
-- **Orders are asynchronous (order saga).** `POST /api/orders` returns **202** with the order in `AWAITING_VALIDATION`: order-ms validates the products with products-ms over RabbitMQ, and the order then moves to `PENDING` (with `price`/`name`/`totalAmount`) or `REJECTED` (with `rejectionReason`). Clients poll `GET /api/orders/:id`. `AWAITING_VALIDATION`/`REJECTED` are saga-owned: order-ms answers `FAILED_PRECONDITION` (→ 400) to a `PATCH` that moves to or from them. `OrderItemDetail.price`/`name` are optional in the proto (unset until validated).
+- **Orders are asynchronous (order saga).** `POST /api/orders` returns **202** with the order in `AWAITING_VALIDATION`: orders-ms validates the products with products-ms over RabbitMQ, and the order then moves to `PENDING` (with `price`/`name`/`totalAmount`) or `REJECTED` (with `rejectionReason`). Clients poll `GET /api/orders/:id`. `AWAITING_VALIDATION`/`REJECTED` are saga-owned: orders-ms answers `FAILED_PRECONDITION` (→ 400) to a `PATCH` that moves to or from them. `OrderItemDetail.price`/`name` are optional in the proto (unset until validated).
 - **Tests.** Unit tests mock the gRPC client by providing the injection token with `{ getService: () => ({...}) }`.

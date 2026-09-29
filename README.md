@@ -4,13 +4,13 @@
 
 # Client Gateway
 
-API Gateway HTTP construido con NestJS. Expone endpoints REST bajo el prefijo `/api` y reenvía cada petición por gRPC a los microservicios [`products-ms`](../products-ms) y [`order-ms`](../order-ms).
+API Gateway HTTP construido con NestJS. Expone endpoints REST bajo el prefijo `/api` y reenvía cada petición por gRPC a los microservicios [`products-ms`](../products-ms) y [`orders-ms`](../orders-ms).
 
 ## Requisitos
 
 - Node.js y pnpm
 - `products-ms` en ejecución y accesible en `PRODUCTS_MICROSERVICE_HOST:PRODUCTS_MICROSERVICE_PORT`
-- `order-ms` en ejecución y accesible en `ORDERS_MICROSERVICE_HOST:ORDERS_MICROSERVICE_PORT` (ver el orden de arranque en el [README raíz](../README.md))
+- `orders-ms` en ejecución y accesible en `ORDERS_MICROSERVICE_HOST:ORDERS_MICROSERVICE_PORT` (ver el orden de arranque en el [README raíz](../README.md))
 
 ## Configuración
 
@@ -56,7 +56,7 @@ pnpm start:prod
 
 ### Órdenes asíncronas (saga)
 
-`POST /api/orders` responde **202 Accepted** con la orden en `AWAITING_VALIDATION`, sin precios ni total. `order-ms` valida los productos con `products-ms` por RabbitMQ y la orden pasa a:
+`POST /api/orders` responde **202 Accepted** con la orden en `AWAITING_VALIDATION`, sin precios ni total. `orders-ms` valida los productos con `products-ms` por RabbitMQ y la orden pasa a:
 
 - `PENDING`: los items traen `price` y `name`, y la orden trae `totalAmount`.
 - `REJECTED`: con `rejectionReason`, por ejemplo `Products not found or unavailable: #9` o `Product validation timed out`.
@@ -67,7 +67,7 @@ Los errores gRPC del microservicio se traducen a códigos HTTP (por ejemplo, `NO
 
 ## Contrato gRPC
 
-`src/proto/products.proto` y `src/proto/orders.proto` son copias de `../products-ms/src/proto/products.proto` y `../order-ms/src/proto/orders.proto`; cada par debe mantenerse idéntico. Después de modificar un `.proto`, regenera los tipos:
+`src/proto/products.proto` y `src/proto/orders.proto` son copias de `../products-ms/src/proto/products.proto` y `../orders-ms/src/proto/orders.proto`; cada par debe mantenerse idéntico. Después de modificar un `.proto`, regenera los tipos:
 
 ```bash
 pnpm proto:gen
