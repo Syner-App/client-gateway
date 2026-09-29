@@ -19,6 +19,8 @@ Uses pnpm.
 - `pnpm test:e2e`: runs `**/*.e2e-spec.ts`. The one e2e spec in `test/` is still the Nest starter's `GET /` "Hello World" test and doesn't match the app.
 - `pnpm proto:gen`: regenerates `src/generated/proto/{products,orders}.ts` from `src/proto/*.proto` using ts-proto (`nestJs=true`, `stringEnums=true`, `.js` import suffix).
 
+Docker: `docker compose up -d --build` from the `syner/` root runs the whole stack in dev mode. It uses the service `Dockerfile`, bind-mounts `src/`, and runs `start:dev`; `node_modules` stays in the image. The compose `environment:` overrides `.env`, which keeps `localhost` for running outside Docker.
+
 ## Architecture
 
 - **ESM + NodeNext.** `"type": "module"`. Relative imports carry an extension, either `.ts` or `.js`, and both appear in the code. `rewriteRelativeImportExtensions` rewrites them at build time. `main.ts` uses top-level `await`. Use `import.meta.dirname` instead of `__dirname`.
@@ -37,4 +39,5 @@ Uses pnpm.
   - It responds with `{ statusCode, message: details }`.
   - Every other exception goes to Nest's `BaseExceptionFilter`.
   - To make a new backend error surface with the right HTTP status, add its mapping to `GRPC_TO_HTTP_STATUS`.
+- **Orders are asynchronous (order saga).** `POST /api/orders` returns **202** with the order in `AWAITING_VALIDATION`: order-ms validates the products with products-ms over RabbitMQ, and the order then moves to `PENDING` (with `price`/`name`/`totalAmount`) or `REJECTED` (with `rejectionReason`). Clients poll `GET /api/orders/:id`. `AWAITING_VALIDATION`/`REJECTED` are saga-owned: order-ms answers `FAILED_PRECONDITION` (→ 400) to a `PATCH` that moves to or from them. `OrderItemDetail.price`/`name` are optional in the proto (unset until validated).
 - **Tests.** Unit tests mock the gRPC client by providing the injection token with `{ getService: () => ({...}) }`.

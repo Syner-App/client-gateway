@@ -2,6 +2,8 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Inject,
   OnModuleInit,
   Param,
@@ -34,7 +36,10 @@ export class OrdersController implements OnModuleInit {
       this.client.getService<OrdersServiceClient>(ORDERS_SERVICE_NAME);
   }
 
+  // The order saga validates the products asynchronously: the order is returned
+  // AWAITING_VALIDATION and moves to PENDING or REJECTED shortly after
   @Post()
+  @HttpCode(HttpStatus.ACCEPTED)
   createOrder(@Body() payload: CreateOrderDto) {
     return this.ordersService.create(payload);
   }
