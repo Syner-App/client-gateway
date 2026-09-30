@@ -4,20 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-NestJS 12 HTTP API gateway. It exposes REST endpoints under the `/api` prefix and forwards each call over gRPC to backend microservices. Backends: `products-ms` (`../products-ms`, `/api/products`, `/api/alerts`) and `orders-ms` (`../orders-ms`, `/api/purchase-orders`).
+NestJS 12 HTTP API gateway. It exposes REST endpoints under the `/api` prefix and forwards each call over gRPC to backend microservices. Backends: `products-ms` (`../products-ms`, `/api/products`, `/api/alerts`), `orders-ms` (`../orders-ms`, `/api/purchase-orders`) and `auth-ms` (`../auth-ms`, `/api/auth`).
 
 ## Commands
 
 Uses pnpm.
 
-- `pnpm start:dev`: runs in watch mode. Needs a `.env` (copy `.env.template`), a running `products-ms` at `PRODUCTS_MICROSERVICE_HOST:PRODUCTS_MICROSERVICE_PORT` and `orders-ms` at `ORDERS_MICROSERVICE_HOST:ORDERS_MICROSERVICE_PORT`.
+- `pnpm start:dev`: runs in watch mode. Needs a `.env` (copy `.env.template`), a running `products-ms` at `PRODUCTS_MICROSERVICE_HOST:PRODUCTS_MICROSERVICE_PORT`, `orders-ms` at `ORDERS_MICROSERVICE_HOST:ORDERS_MICROSERVICE_PORT` and `auth-ms` at `AUTH_MICROSERVICE_HOST:AUTH_MICROSERVICE_PORT`.
 - `pnpm build`: `nest build`. Copies `**/*.proto` into `dist/`, because the gRPC client loads the `.proto` at runtime.
 - `pnpm lint`: runs oxlint with type-aware rules. `no-floating-promises` is an error.
 - `pnpm format`: runs Prettier.
 - `pnpm test`: runs the Vitest unit tests (`**/*.spec.ts`, with globals enabled).
 - Single test: `pnpm vitest run src/products/products.controller.spec.ts`, or add `-t "<name>"`.
 - `pnpm test:e2e`: runs `**/*.e2e-spec.ts`. The one e2e spec in `test/` is still the Nest starter's `GET /` "Hello World" test and doesn't match the app.
-- `pnpm proto:gen`: regenerates `src/generated/proto/{products,orders}.ts` from `src/proto/*.proto` using ts-proto (`nestJs=true`, `stringEnums=true`, `.js` import suffix).
+- `pnpm proto:gen`: regenerates `src/generated/proto/{products,orders,auth}.ts` from `src/proto/*.proto` using ts-proto (`nestJs=true`, `stringEnums=true`, `.js` import suffix).
 
 Docker: `docker compose up -d --build` from the `syner/` root runs the whole stack in dev mode. It uses the service `Dockerfile`, bind-mounts `src/`, and runs `start:dev`; `node_modules` stays in the image. The compose `environment:` overrides `.env`, which keeps `localhost` for running outside Docker.
 
@@ -32,7 +32,7 @@ Docker: `docker compose up -d --build` from the `syner/` root runs the whole sta
   - Types and service or package name constants come from the generated ts-proto file.
   - Route params are parsed with `ParseIntPipe` / `ParseUUIDPipe`. There's no global `ValidationPipe`; every controller applies one via `@UsePipes`, because protobufjs silently drops unknown enum strings (e.g. `estado=FOO`) before the microservice could reject them, and query strings need converting (`@Type(() => Number)`, `@ToBoolean()` from `src/common/transforms/`).
   - Fields are snake_case and proto enums are strings: both clients in `src/transport/grpc.module.ts` and the servers set `loader: { keepCase: true, enums: String }`, and `proto:gen` uses `snakeToCamel=false`. Build enum lists with `enumValues()` (`src/common/enum-values.ts`), which drops ts-proto's `UNRECOGNIZED` member.
-- **Proto contract.** `src/proto/products.proto` and `src/proto/orders.proto` are hand-maintained copies of `../products-ms/src/proto/products.proto` and `../orders-ms/src/proto/orders.proto`. Each pair must stay identical. After editing a proto, run `pnpm proto:gen`. Never edit `src/generated/` by hand.
+- **Proto contract.** `src/proto/products.proto`, `src/proto/orders.proto` and `src/proto/auth.proto` are hand-maintained copies of `../products-ms/src/proto/products.proto`, `../orders-ms/src/proto/orders.proto` and `../auth-ms/src/proto/auth.proto`. Each pair must stay identical. After editing a proto, run `pnpm proto:gen`. Never edit `src/generated/` by hand.
 - **Error mapping.** `GrpcExceptionFilter` (`src/common/exceptions/`) is registered globally in `main.ts`:
   - It detects gRPC errors by shape (`{ code: number, details: string }`).
   - It maps gRPC status codes to HTTP status codes, for example `NOT_FOUND` → 404 and `INVALID_ARGUMENT` → 400.
@@ -40,4 +40,5 @@ Docker: `docker compose up -d --build` from the `syner/` root runs the whole sta
   - Every other exception goes to Nest's `BaseExceptionFilter`.
   - To make a new backend error surface with the right HTTP status, add its mapping to `GRPC_TO_HTTP_STATUS`.
 - **Purchase orders are asynchronous (saga).** `POST /api/purchase-orders` returns **202** with the order in `EN_VALIDACION`: orders-ms validates the product with products-ms over RabbitMQ, and the order then moves to `PENDIENTE` or `RECHAZADA` (with `motivo`). `PATCH /api/purchase-orders/update-status-purchase/:id` takes `{ estado, motivo? }`: `UpdateStatusPurchaseDto` only allows `APROBADA`, `RECHAZADA` (motivo required via `@ValidateIf`) and `RECIBIDA`; orders-ms answers `FAILED_PRECONDITION` (→ 400) when the order is not in the required source state.
+- **Auth (`src/auth/`).** `POST /api/auth/register` (`{ name, email, password }`, strong password) and `POST /api/auth/login` (`{ email, password }`) return `{ user, token }` from auth-ms. `GET /api/auth/verify` is protected by `AuthGuard`, which reads `Authorization: Bearer <token>`, calls auth-ms `Verify` and sets `request.user` / `request.token` (renewed JWT), read with the `@User()` / `@Token()` decorators. `AuthModule` exports `AuthGuard`; to protect routes in another module, import `AuthModule` there and add `@UseGuards(AuthGuard)`. auth-ms errors: `UNAUTHENTICATED` → 401, `ALREADY_EXISTS` (email taken) → 409.
 - **Tests.** Unit tests mock the gRPC client by providing the injection token with `{ getService: () => ({...}) }`.
