@@ -14,7 +14,7 @@ import {
   type ProductsServiceClient,
 } from '../generated/proto/products.ts';
 import { FindAlertsDto } from './dtos/find-alerts.dto.ts';
-import { Auth } from '../auth/decorators/index.ts';
+import { Auth, OrganizationId } from '../auth/decorators/index.ts';
 
 // Alerts live in products-ms: STOCK_BAJO alerts are generated on every stock change
 @Auth()
@@ -31,7 +31,7 @@ export class AlertsController implements OnModuleInit {
   }
 
   @Get()
-  findAllAlerts(@Query() findAlertsDto: FindAlertsDto) {
-    return this.productsService.findAlerts(findAlertsDto);
+  findAllAlerts(@Query() findAlertsDto: FindAlertsDto, @OrganizationId() organization_id: string) {
+    return this.productsService.findAlerts({ ...findAlertsDto, organization_id });
   }
 }

@@ -25,10 +25,11 @@ import {
   PurchaseOrderPaginationDto,
   UpdateStatusPurchaseDto,
 } from './dtos/index.ts';
-import { Auth, Roles } from '../auth/decorators/index.ts';
+import { Auth, OrganizationId, Roles } from '../auth/decorators/index.ts';
 import { MANAGER_ROLES } from '../auth/roles.ts';
 
-// Any authenticated user can read; only owner/admin create orders and change their status
+// Any member of the organization can read; only owner/admin create orders and change their
+// status. Every call is scoped to the organization of the token (@OrganizationId)
 @Auth()
 @Controller('purchase-orders')
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
@@ -47,18 +48,21 @@ export class PurchaseOrdersController implements OnModuleInit {
   @Roles(...MANAGER_ROLES)
   @Post()
   @HttpCode(HttpStatus.ACCEPTED)
-  createPurchaseOrder(@Body() payload: CreatePurchaseOrderDto) {
-    return this.purchaseOrdersService.create(payload);
+  createPurchaseOrder(@Body() payload: CreatePurchaseOrderDto, @OrganizationId() organization_id: string) {
+    return this.purchaseOrdersService.create({ ...payload, organization_id });
   }
 
   @Get()
-  findAllPurchaseOrders(@Query() purchaseOrderPaginationDto: PurchaseOrderPaginationDto) {
-    return this.purchaseOrdersService.findAll(purchaseOrderPaginationDto);
+  findAllPurchaseOrders(
+    @Query() purchaseOrderPaginationDto: PurchaseOrderPaginationDto,
+    @OrganizationId() organization_id: string,
+  ) {
+    return this.purchaseOrdersService.findAll({ ...purchaseOrderPaginationDto, organization_id });
   }
 
   @Get(':id')
-  findOnePurchaseOrder(@Param('id', ParseUUIDPipe) id: string) {
-    return this.purchaseOrdersService.findOne({ id });
+  findOnePurchaseOrder(@Param('id', ParseUUIDPipe) id: string, @OrganizationId() organization_id: string) {
+    return this.purchaseOrdersService.findOne({ id, organization_id });
   }
 
   // PENDIENTE -> APROBADA | RECHAZADA (motivo required), APROBADA -> RECIBIDA
@@ -67,7 +71,8 @@ export class PurchaseOrdersController implements OnModuleInit {
   updateStatusPurchase(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() { estado, motivo }: UpdateStatusPurchaseDto,
+    @OrganizationId() organization_id: string,
   ) {
-    return this.purchaseOrdersService.updateStatus({ id, estado, motivo });
+    return this.purchaseOrdersService.updateStatus({ id, estado, motivo, organization_id });
   }
 }

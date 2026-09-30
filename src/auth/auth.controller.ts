@@ -18,10 +18,10 @@ import {
   Role,
   type User as UserResponse,
 } from '../generated/proto/auth.ts';
-import { LoginUserDto, RegisterUserDto, UpdateUserRoleDto } from './dtos/index.ts';
-import { Auth, Token, User } from './decorators/index.ts';
-import { MANAGER_ROLES } from './roles.ts';
+import { LoginUserDto, SwitchOrganizationDto, UpdateUserRoleDto } from './dtos/index.ts';
+import { Auth, Authenticated, OrganizationId, Token, User } from './decorators/index.ts';
 
+// Users are created by the platform superadmin (POST /api/organizations/:id/members)
 @Controller('auth')
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 export class AuthController implements OnModuleInit {
@@ -33,33 +33,36 @@ export class AuthController implements OnModuleInit {
     this.authService = this.client.getService<AuthServiceClient>(AUTH_SERVICE_NAME);
   }
 
-  // Only owner/admin register users; auth-ms checks which roles the caller may assign
-  @Auth(...MANAGER_ROLES)
-  @Post('register')
-  registerUser(@Body() { name, email, password, role }: RegisterUserDto, @User() user: UserResponse) {
-    return this.authService.registerUser({ name, email, password, role, requester_role: user.role });
-  }
-
+  // Returns the token and the active memberships. With a single membership (or with
+  // organization_id) the token is already scoped to an organization
   @Post('login')
   loginUser(@Body() loginUserDto: LoginUserDto) {
     return this.authService.loginUser(loginUserDto);
   }
 
+  // Returns a token scoped to another organization the caller belongs to
+  @Authenticated()
+  @Post('switch-organization')
+  switchOrganization(@Body() { organization_id }: SwitchOrganizationDto, @User() user: UserResponse) {
+    return this.authService.switchOrganization({ requester_id: user.id, organization_id });
+  }
+
   // AuthGuard already verified the token with auth-ms and got a renewed one
-  @Auth()
+  @Authenticated()
   @Get('verify')
   verifyToken(@User() user: UserResponse, @Token() token: string) {
     return { user, token };
   }
 
-  // Owner only. auth-ms rejects changing your own role
+  // Owner of the active organization only. auth-ms rejects changing your own role
   @Auth(Role.owner)
   @Patch('users/:id/role')
   updateUserRole(
     @Param('id') id: string,
     @Body() { role }: UpdateUserRoleDto,
     @User() user: UserResponse,
+    @OrganizationId() organization_id: string,
   ) {
-    return this.authService.updateUserRole({ user_id: id, role, requester_id: user.id });
+    return this.authService.updateUserRole({ user_id: id, role, requester_id: user.id, organization_id });
   }
 }

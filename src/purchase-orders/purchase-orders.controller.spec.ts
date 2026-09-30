@@ -36,15 +36,17 @@ describe('PurchaseOrdersController', () => {
     expect(controller).toBeDefined();
   });
 
-  it('sends the id from the route and the estado/motivo from the body', () => {
+  it('sends the id from the route, the estado/motivo from the body and the organization of the token', () => {
     const id = '6f1c1c9e-2f5b-4c1a-9a47-6a2b1f3c8d10';
+    const organization_id = '6abd26a42d059ac027376ca1';
 
-    controller.updateStatusPurchase(id, { estado: 'RECHAZADA' as never, motivo: 'Sin presupuesto' });
+    controller.updateStatusPurchase(id, { estado: 'RECHAZADA' as never, motivo: 'Sin presupuesto' }, organization_id);
 
     expect(purchaseOrdersService.updateStatus).toHaveBeenCalledWith({
       id,
       estado: 'RECHAZADA',
       motivo: 'Sin presupuesto',
+      organization_id,
     });
   });
 
