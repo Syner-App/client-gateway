@@ -57,7 +57,7 @@ export class PurchaseOrdersController implements OnModuleInit {
   }
 
   // PENDIENTE -> APROBADA | RECHAZADA (motivo required), APROBADA -> RECIBIDA
-  @Patch('update-status-purchase/:id')
+  @Patch('update-status/:id')
   updateStatusPurchase(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() { estado, motivo }: UpdateStatusPurchaseDto,
