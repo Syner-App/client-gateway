@@ -25,7 +25,11 @@ import {
   PurchaseOrderPaginationDto,
   UpdateStatusPurchaseDto,
 } from './dtos/index.ts';
+import { Auth, Roles } from '../auth/decorators/index.ts';
+import { MANAGER_ROLES } from '../auth/roles.ts';
 
+// Any authenticated user can read; only owner/admin create orders and change their status
+@Auth()
 @Controller('purchase-orders')
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 export class PurchaseOrdersController implements OnModuleInit {
@@ -40,6 +44,7 @@ export class PurchaseOrdersController implements OnModuleInit {
 
   // The purchase order saga validates the product asynchronously: the order is
   // returned EN_VALIDACION and moves to PENDIENTE or RECHAZADA shortly after
+  @Roles(...MANAGER_ROLES)
   @Post()
   @HttpCode(HttpStatus.ACCEPTED)
   createPurchaseOrder(@Body() payload: CreatePurchaseOrderDto) {
@@ -57,6 +62,7 @@ export class PurchaseOrdersController implements OnModuleInit {
   }
 
   // PENDIENTE -> APROBADA | RECHAZADA (motivo required), APROBADA -> RECIBIDA
+  @Roles(...MANAGER_ROLES)
   @Patch('update-status/:id')
   updateStatusPurchase(
     @Param('id', ParseUUIDPipe) id: string,

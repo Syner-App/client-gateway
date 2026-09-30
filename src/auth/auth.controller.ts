@@ -4,8 +4,9 @@ import {
   Get,
   Inject,
   OnModuleInit,
+  Param,
+  Patch,
   Post,
-  UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
@@ -14,11 +15,12 @@ import { AUTH_SERVICE } from '../config/index.ts';
 import {
   AUTH_SERVICE_NAME,
   type AuthServiceClient,
+  Role,
   type User as UserResponse,
 } from '../generated/proto/auth.ts';
-import { LoginUserDto, RegisterUserDto } from './dtos/index.ts';
-import { AuthGuard } from './guards/auth.guard.ts';
-import { Token, User } from './decorators/index.ts';
+import { LoginUserDto, RegisterUserDto, UpdateUserRoleDto } from './dtos/index.ts';
+import { Auth, Token, User } from './decorators/index.ts';
+import { MANAGER_ROLES } from './roles.ts';
 
 @Controller('auth')
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
@@ -31,9 +33,11 @@ export class AuthController implements OnModuleInit {
     this.authService = this.client.getService<AuthServiceClient>(AUTH_SERVICE_NAME);
   }
 
+  // Only owner/admin register users; auth-ms checks which roles the caller may assign
+  @Auth(...MANAGER_ROLES)
   @Post('register')
-  registerUser(@Body() registerUserDto: RegisterUserDto) {
-    return this.authService.registerUser(registerUserDto);
+  registerUser(@Body() { name, email, password, role }: RegisterUserDto, @User() user: UserResponse) {
+    return this.authService.registerUser({ name, email, password, role, requester_role: user.role });
   }
 
   @Post('login')
@@ -42,9 +46,20 @@ export class AuthController implements OnModuleInit {
   }
 
   // AuthGuard already verified the token with auth-ms and got a renewed one
-  @UseGuards(AuthGuard)
+  @Auth()
   @Get('verify')
   verifyToken(@User() user: UserResponse, @Token() token: string) {
     return { user, token };
+  }
+
+  // Owner only. auth-ms rejects changing your own role
+  @Auth(Role.owner)
+  @Patch('users/:id/role')
+  updateUserRole(
+    @Param('id') id: string,
+    @Body() { role }: UpdateUserRoleDto,
+    @User() user: UserResponse,
+  ) {
+    return this.authService.updateUserRole({ user_id: id, role, requester_id: user.id });
   }
 }

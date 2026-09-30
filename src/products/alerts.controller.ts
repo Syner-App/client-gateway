@@ -14,8 +14,10 @@ import {
   type ProductsServiceClient,
 } from '../generated/proto/products.ts';
 import { FindAlertsDto } from './dtos/find-alerts.dto.ts';
+import { Auth } from '../auth/decorators/index.ts';
 
 // Alerts live in products-ms: STOCK_BAJO alerts are generated on every stock change
+@Auth()
 @Controller('alerts')
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 export class AlertsController implements OnModuleInit {

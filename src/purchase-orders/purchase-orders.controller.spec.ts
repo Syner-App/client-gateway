@@ -1,6 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PurchaseOrdersController } from './purchase-orders.controller.ts';
-import { ORDERS_SERVICE } from '../config/index.ts';
+import { Reflector } from '@nestjs/core';
+import { AUTH_SERVICE, ORDERS_SERVICE } from '../config/index.ts';
+import { AuthGuard } from '../auth/guards/auth.guard.ts';
+import { RolesGuard } from '../auth/guards/roles.guard.ts';
+import { ROLES_KEY } from '../auth/roles.ts';
+import { Role } from '../generated/proto/auth.ts';
+
+const rolesOf = (handler: keyof PurchaseOrdersController) =>
+  new Reflector().getAllAndOverride<Role[]>(ROLES_KEY, [
+    PurchaseOrdersController.prototype[handler],
+    PurchaseOrdersController,
+  ]);
 
 describe('PurchaseOrdersController', () => {
   let controller: PurchaseOrdersController;
@@ -11,6 +22,9 @@ describe('PurchaseOrdersController', () => {
       controllers: [PurchaseOrdersController],
       providers: [
         { provide: ORDERS_SERVICE, useValue: { getService: () => purchaseOrdersService } },
+        { provide: AUTH_SERVICE, useValue: { getService: () => ({}) } },
+        AuthGuard,
+        RolesGuard,
       ],
     }).compile();
 
@@ -32,5 +46,13 @@ describe('PurchaseOrdersController', () => {
       estado: 'RECHAZADA',
       motivo: 'Sin presupuesto',
     });
+  });
+
+  it.each(['findAllPurchaseOrders', 'findOnePurchaseOrder'] as const)('lets any role use %s', (handler) => {
+    expect(rolesOf(handler)).toEqual([]);
+  });
+
+  it.each(['createPurchaseOrder', 'updateStatusPurchase'] as const)('restricts %s to owner and admin', (handler) => {
+    expect(rolesOf(handler)).toEqual([Role.owner, Role.admin]);
   });
 });
