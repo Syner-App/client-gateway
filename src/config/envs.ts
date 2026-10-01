@@ -10,6 +10,8 @@ interface EnvVars {
     ORDERS_MICROSERVICE_PORT: number;
     AUTH_MICROSERVICE_HOST: string;
     AUTH_MICROSERVICE_PORT: number;
+    FINANCE_MICROSERVICE_HOST: string;
+    FINANCE_MICROSERVICE_PORT: number;
 }
 
 const envsSchema = Joi.object({
@@ -19,7 +21,9 @@ const envsSchema = Joi.object({
     ORDERS_MICROSERVICE_HOST: Joi.string().required(),
     ORDERS_MICROSERVICE_PORT: Joi.number().required(),
     AUTH_MICROSERVICE_HOST: Joi.string().required(),
-    AUTH_MICROSERVICE_PORT: Joi.number().required()
+    AUTH_MICROSERVICE_PORT: Joi.number().required(),
+    FINANCE_MICROSERVICE_HOST: Joi.string().required(),
+    FINANCE_MICROSERVICE_PORT: Joi.number().required(),
 }).unknown(true);
 
 const { error, value } = envsSchema.validate(process.env);
@@ -37,5 +41,7 @@ export const envs = {
     ordersMicroserviceHost: envVars.ORDERS_MICROSERVICE_HOST,
     ordersMicroservicePort: envVars.ORDERS_MICROSERVICE_PORT,
     authMicroserviceHost: envVars.AUTH_MICROSERVICE_HOST,
-    authMicroservicePort: envVars.AUTH_MICROSERVICE_PORT
+    authMicroservicePort: envVars.AUTH_MICROSERVICE_PORT,
+    financeMicroserviceHost: envVars.FINANCE_MICROSERVICE_HOST,
+    financeMicroservicePort: envVars.FINANCE_MICROSERVICE_PORT,
 }

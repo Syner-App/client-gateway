@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-NestJS 12 HTTP API gateway. It exposes REST endpoints under the `/api` prefix and forwards each call over gRPC to backend microservices. Backends: `products-ms` (`../products-ms`, `/api/products`, `/api/alerts`), `orders-ms` (`../orders-ms`, `/api/purchase-orders`) and `auth-ms` (`../auth-ms`, `/api/auth`).
+NestJS 12 HTTP API gateway. It exposes REST endpoints under the `/api` prefix and forwards each call over gRPC to backend microservices. Backends: `products-ms` (`../products-ms`, `/api/products`, `/api/alerts`), `orders-ms` (`../orders-ms`, `/api/purchase-orders`), `auth-ms` (`../auth-ms`, `/api/auth`) and `finance-ms` (`../finance-ms`, `/api/finance`).
 
 ## Commands
 
@@ -39,6 +39,7 @@ Docker: `docker compose up -d --build` from the `syner/` root runs the whole sta
   - It responds with `{ statusCode, message: details }`.
   - Every other exception goes to Nest's `BaseExceptionFilter`.
   - To make a new backend error surface with the right HTTP status, add its mapping to `GRPC_TO_HTTP_STATUS`.
+- **Finance** (`src/finance/`): three controllers on `/api/finance` (ledger, operations, reports) against `finance.FinanceService`. Its gRPC client loads with `longs: Number` (int64 money) and `arrays: true` (empty lists as `[]`). Roles: any member registers sales and reads recipes; `MANAGER_ROLES` record expenses, sales admin, supplies, recipes, payables, installments and read the reports; `OWNER_ROLES` (`src/auth/roles.ts`) take the money decisions (contributions, withdrawals, reserve transfers, new credits, prepayments, policy, closing/reopening periods). Booleans and lists that proto3 cannot leave unset are defaulted here (`pagado: false`, `hacia_reserva: true`, `forzar: false`, empty `items`/`niveles` = keep).
 - **Purchase orders are asynchronous (saga).** `POST /api/purchase-orders` returns **202** with the order in `EN_VALIDACION`: orders-ms validates the product with products-ms over RabbitMQ, and the order then moves to `PENDIENTE` or `RECHAZADA` (with `motivo`). `PATCH /api/purchase-orders/update-status-purchase/:id` takes `{ estado, motivo? }`: `UpdateStatusPurchaseDto` only allows `APROBADA`, `RECHAZADA` (motivo required via `@ValidateIf`) and `RECIBIDA`; orders-ms answers `FAILED_PRECONDITION` (→ 400) when the order is not in the required source state.
 - **Multitenancy.** auth-ms owns organizations (tenants) and memberships (a user's role inside one organization; a user may belong to several). The JWT is scoped to at most one organization, and `request.user` (set by `AuthGuard` from auth-ms `Verify`) carries `organization_id` and `role` for it, or `platform_role: superadmin` for the platform admin. Every call to products-ms and orders-ms sends `organization_id` taken with `@OrganizationId()` (`src/auth/decorators/organization-id.decorator.ts`) from the verified token, **never from the request body or query**; the microservices scope every query to it (a foreign id is 404).
 - **Auth (`src/auth/`).** Three route decorators (`src/auth/decorators/auth.decorator.ts`):
