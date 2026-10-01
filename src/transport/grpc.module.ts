@@ -8,8 +8,10 @@ import { PRODUCTS_PACKAGE_NAME } from '../generated/proto/products.ts';
 import { AUTH_PACKAGE_NAME } from '../generated/proto/auth.ts';
 import { FINANCE_PACKAGE_NAME } from '../generated/proto/finance.ts';
 
-// snake_case fields and string enums, like the microservices
-const loader = { keepCase: true, enums: String };
+// snake_case fields and string enums, like the microservices. defaults and arrays keep
+// zero values (0, false, the first enum value, empty lists) in the responses instead of
+// dropping them; proto3 optional fields stay absent when unset
+const loader = { keepCase: true, enums: String, defaults: true, arrays: true };
 
 const grpcClients = ClientsModule.register([
     {
@@ -49,8 +51,8 @@ const grpcClients = ClientsModule.register([
             package: FINANCE_PACKAGE_NAME,
             protoPath: join(import.meta.dirname, '../proto/finance.proto'),
             url: `${envs.financeMicroserviceHost}:${envs.financeMicroservicePort}`,
-            // int64 amounts as numbers, and empty lists as [] instead of missing
-            loader: { ...loader, longs: Number, arrays: true },
+            // int64 amounts as numbers
+            loader: { ...loader, longs: Number },
         },
     },
 ]);

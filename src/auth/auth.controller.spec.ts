@@ -53,9 +53,9 @@ describe('AuthController', () => {
     expect(authService.switchOrganization).toHaveBeenCalledWith({ requester_id: 'user-id', organization_id });
   });
 
-  it('returns the user and renewed token set by AuthGuard', () => {
-    const user = { id: '1', name: 'Ana', email: 'ana@syner.com', organization_id, role: Role.user };
-    expect(controller.verifyToken(user, 'renewed')).toEqual({ user, token: 'renewed' });
+  it('verifies the renewed token again asking for the memberships', () => {
+    controller.verifyToken('renewed');
+    expect(authService.verify).toHaveBeenCalledWith({ token: 'renewed', include_memberships: true });
   });
 
   it('forwards the role change with the target id, the caller id and its organization', () => {

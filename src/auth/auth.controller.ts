@@ -51,11 +51,15 @@ export class AuthController implements OnModuleInit {
     return this.authService.switchOrganization({ requester_id: user.id, organization_id });
   }
 
-  /** AuthGuard already verified the token with auth-ms and got a renewed one */
+  /**
+   * Returns the current user, a renewed token and the active memberships (to pick an
+   * organization again after a reload)
+   */
   @Authenticated()
   @Get('verify')
-  verifyToken(@User() user: UserResponse, @Token() token: string) {
-    return { user, token };
+  verifyToken(@Token() token: string) {
+    // AuthGuard already verified it; verified again for the memberships
+    return this.authService.verify({ token, include_memberships: true });
   }
 
   /** Owner of the active organization only. auth-ms rejects changing your own role */
