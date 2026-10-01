@@ -15,6 +15,7 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import type { ClientGrpc } from '@nestjs/microservices';
+import { ApiTags } from '@nestjs/swagger';
 import { FINANCE_SERVICE } from '../config/index.ts';
 import { FINANCE_SERVICE_NAME, type FinanceServiceClient } from '../generated/proto/finance.ts';
 import { Auth, OrganizationId, Roles } from '../auth/decorators/index.ts';
@@ -36,6 +37,7 @@ import {
 // payables of received purchase orders and the credit. Any member registers sales and reads
 // the recipes; owner/admin manage the rest; only the owner takes on credit or prepays it
 @Auth()
+@ApiTags('Finance: operations')
 @Controller('finance')
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 export class FinanceOperationsController implements OnModuleInit {
@@ -84,7 +86,7 @@ export class FinanceOperationsController implements OnModuleInit {
     return this.financeService.updateRecipe({ ...payload, items: payload.items ?? [], id, organization_id });
   }
 
-  // Discounts the supplies of the recipes from the products-ms stock (estado_stock)
+  /** Discounts the supplies of the recipes from the products-ms stock (estado_stock) */
   @Post('sales')
   registerSale(@Body() payload: RegisterSaleDto, @OrganizationId() organization_id: string) {
     return this.financeService.registerSale({ ...payload, organization_id });
@@ -96,7 +98,7 @@ export class FinanceOperationsController implements OnModuleInit {
     return this.financeService.findSales({ ...query, organization_id });
   }
 
-  // After fixing the stock in products-ms, sends the discount of a rejected sale again
+  /** After fixing the stock in products-ms, sends the discount of a rejected sale again */
   @Roles(...MANAGER_ROLES)
   @Post('sales/:id/retry-stock')
   retrySaleStock(@Param('id', ParseUUIDPipe) id: string, @OrganizationId() organization_id: string) {
@@ -141,7 +143,7 @@ export class FinanceOperationsController implements OnModuleInit {
     return this.financeService.payInstallment({ ...payload, id, organization_id });
   }
 
-  // Only with the working capital covered and the reserve complete (GET /finance/waterfall)
+  /** Only with the working capital covered and the reserve complete (GET /finance/waterfall) */
   @Roles(...OWNER_ROLES)
   @Post('credits/:id/prepayments')
   prepayCredit(

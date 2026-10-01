@@ -35,7 +35,7 @@ export class UpsertSupplyDto {
   @IsIn(SUPPLY_CATEGORIES, { message: enumMessage('categoria', SUPPLY_CATEGORIES) })
   public categoria: MovementCategory;
 
-  // Pesos per unit of the products-ms product
+  /** Pesos per unit of the products-ms product */
   @IsNumber({ maxDecimalPlaces: 4 })
   @IsPositive()
   public costo_unitario: number;
@@ -46,7 +46,7 @@ export class RecipeItemDto {
   @IsPositive()
   public supply_id: number;
 
-  // Units of the products-ms product per unit sold (may be a fraction: 0.05 bags of ice)
+  /** Units of the products-ms product per unit sold (may be a fraction: 0.05 bags of ice) */
   @IsNumber({ maxDecimalPlaces: 4 })
   @IsPositive()
   public cantidad: number;
@@ -85,7 +85,7 @@ export class UpdateRecipeDto {
   @IsOptional()
   public activo?: boolean;
 
-  // Replaces every item of the recipe
+  /** Replaces every item of the recipe */
   @IsArray()
   @ArrayNotEmpty()
   @ValidateNested({ each: true })
@@ -103,7 +103,7 @@ export class SaleLineDto {
   @IsPositive()
   public unidades: number;
 
-  // Defaults to the recipe price
+  /** Defaults to the recipe price */
   @IsInt()
   @IsPositive()
   @IsOptional()
@@ -142,7 +142,7 @@ export class FindPayablesDto extends PaginationDto {
 }
 
 export class PayPayableDto {
-  // Amount of the bill; it becomes the reference cost of the supply
+  /** Amount of the bill; it becomes the reference cost of the supply */
   @IsInt()
   @IsPositive()
   public monto_real: number;
@@ -169,7 +169,7 @@ export class CreateCreditDto {
   @IsPositive()
   public cuota_mensual: number;
 
-  // Part of the installment the business pays
+  /** Part of the installment the business pays */
   @IsInt()
   @Min(0)
   public cuota_asignada: number;
@@ -188,7 +188,7 @@ export class PayInstallmentDto {
   @IsPositive()
   public monto: number;
 
-  // Part of the installment that lowers the principal
+  /** Part of the installment that lowers the principal */
   @IsInt()
   @Min(0)
   @IsOptional()

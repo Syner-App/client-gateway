@@ -7,6 +7,16 @@
     "assets": [
       "**/*.proto"
     ],
-    "watchAssets": true
+    "watchAssets": true,
+    "plugins": [
+      {
+        "name": "@nestjs/swagger",
+        "options": {
+          "classValidatorShim": true,
+          "introspectComments": true,
+          "esmCompatible": true
+        }
+      }
+    ]
   }
 }

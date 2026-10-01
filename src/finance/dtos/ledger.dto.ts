@@ -23,12 +23,12 @@ export class RegisterExpenseDto {
   @Type(() => Number)
   public monto: number;
 
-  // Accrual date, default today
+  /** Accrual date, default today */
   @Matches(DATE, { message: DATE_MESSAGE })
   @IsOptional()
   public fecha?: string;
 
-  // false (default): accrued now, paid later with PATCH /finance/expenses/:id/pay
+  /** false (default): accrued now, paid later with PATCH /finance/expenses/:id/pay */
   @IsBoolean()
   @IsOptional()
   public pagado?: boolean;
@@ -77,11 +77,11 @@ export class TransferReserveDto {
   @Type(() => Number)
   public monto: number;
 
-  // CAJA or BANCO: origin (or destination, when leaving the reserve)
+  /** CAJA or BANCO: origin (or destination, when leaving the reserve) */
   @IsIn(CASH_ACCOUNTS, { message: enumMessage('cuenta', CASH_ACCOUNTS) })
   public cuenta: Account;
 
-  // true (default): into the reserve; false: back to cuenta
+  /** true (default): into the reserve; false: back to cuenta */
   @IsBoolean()
   @IsOptional()
   public hacia_reserva?: boolean;
@@ -109,7 +109,7 @@ export class RegisterWithdrawalDto {
   @IsOptional()
   public descripcion?: string;
 
-  // Withdraw above the distributable profit: flagged as descapitalizacion, requires motivo
+  /** Withdraw above the distributable profit: flagged as descapitalizacion, requires motivo */
   @IsBoolean()
   @IsOptional()
   public forzar?: boolean;

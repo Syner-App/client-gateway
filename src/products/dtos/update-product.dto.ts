@@ -1,4 +1,4 @@
-import { OmitType, PartialType } from '@nestjs/mapped-types';
+import { OmitType, PartialType } from '@nestjs/swagger';
 import { CreateProductDto } from './create-product.dto.ts';
 
 // stock_actual only changes through POST /products/:id/stock

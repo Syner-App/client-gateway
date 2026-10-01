@@ -15,7 +15,7 @@ export class UpdateStatusPurchaseDto {
   })
   public estado: StatusPurchaseOrder;
 
-  // Required when rejecting, optional otherwise
+  /** Required when rejecting, optional otherwise */
   @ValidateIf((dto: UpdateStatusPurchaseDto) => dto.estado === StatusPurchaseOrder.RECHAZADA || dto.motivo !== undefined)
   @IsString()
   @IsNotEmpty({ message: 'motivo is required when estado is RECHAZADA' })

@@ -13,6 +13,7 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import type { ClientGrpc } from '@nestjs/microservices';
+import { ApiTags } from '@nestjs/swagger';
 import { FINANCE_SERVICE } from '../config/index.ts';
 import { FINANCE_SERVICE_NAME, type FinanceServiceClient } from '../generated/proto/finance.ts';
 import { Auth, OrganizationId, Roles } from '../auth/decorators/index.ts';
@@ -31,6 +32,7 @@ import {
 // money between the business and its owners (contributions, withdrawals, reserve) and
 // closes periods. Every call is scoped to the organization of the token (@OrganizationId)
 @Auth()
+@ApiTags('Finance: ledger')
 @Controller('finance')
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 export class FinanceLedgerController implements OnModuleInit {
@@ -58,7 +60,7 @@ export class FinanceLedgerController implements OnModuleInit {
     return this.financeService.payExpense({ ...payload, id, organization_id });
   }
 
-  // Filters: periodo, categoria, estado
+  /** Filters: periodo, categoria, estado */
   @Roles(...MANAGER_ROLES)
   @Get('movements')
   findMovements(@Query() query: FindMovementsDto, @OrganizationId() organization_id: string) {
@@ -80,7 +82,7 @@ export class FinanceLedgerController implements OnModuleInit {
     return this.financeService.transferReserve({ monto, cuenta, hacia_reserva, fecha, organization_id });
   }
 
-  // Accepted up to the distributable profit of the waterfall (GET /finance/waterfall)
+  /** Accepted up to the distributable profit of the waterfall (GET /finance/waterfall) */
   @Roles(...OWNER_ROLES)
   @Post('withdrawals')
   registerWithdrawal(@Body() payload: RegisterWithdrawalDto, @OrganizationId() organization_id: string) {

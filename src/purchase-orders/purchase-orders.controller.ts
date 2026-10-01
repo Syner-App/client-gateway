@@ -15,6 +15,7 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import type { ClientGrpc } from '@nestjs/microservices';
+import { ApiTags } from '@nestjs/swagger';
 import { ORDERS_SERVICE } from '../config/index.ts';
 import {
   PURCHASE_ORDERS_SERVICE_NAME,
@@ -31,6 +32,7 @@ import { MANAGER_ROLES } from '../auth/roles.ts';
 // Any member of the organization can read; only owner/admin create orders and change their
 // status. Every call is scoped to the organization of the token (@OrganizationId)
 @Auth()
+@ApiTags('Purchase orders')
 @Controller('purchase-orders')
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 export class PurchaseOrdersController implements OnModuleInit {
@@ -43,8 +45,10 @@ export class PurchaseOrdersController implements OnModuleInit {
       this.client.getService<PurchaseOrdersServiceClient>(PURCHASE_ORDERS_SERVICE_NAME);
   }
 
-  // The purchase order saga validates the product asynchronously: the order is
-  // returned EN_VALIDACION and moves to PENDIENTE or RECHAZADA shortly after
+  /**
+   * The purchase order saga validates the product asynchronously: the order is
+   * returned EN_VALIDACION and moves to PENDIENTE or RECHAZADA shortly after
+   */
   @Roles(...MANAGER_ROLES)
   @Post()
   @HttpCode(HttpStatus.ACCEPTED)
@@ -65,7 +69,7 @@ export class PurchaseOrdersController implements OnModuleInit {
     return this.purchaseOrdersService.findOne({ id, organization_id });
   }
 
-  // PENDIENTE -> APROBADA | RECHAZADA (motivo required), APROBADA -> RECIBIDA
+  /** PENDIENTE -> APROBADA | RECHAZADA (motivo required), APROBADA -> RECIBIDA */
   @Roles(...MANAGER_ROLES)
   @Patch('update-status/:id')
   updateStatusPurchase(

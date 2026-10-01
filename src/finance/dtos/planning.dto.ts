@@ -5,17 +5,17 @@ import { enumMessage } from '../../common/index.ts';
 import { DATE, DATE_MESSAGE, OPERATING_EXPENSES, PERIOD, PERIOD_MESSAGE } from './finance-enums.ts';
 
 export class SetAssumptionsDto {
-  // Version in force from this date (default today)
+  /** Version in force from this date (default today) */
   @Matches(DATE, { message: DATE_MESSAGE })
   @IsOptional()
   public vigente_desde?: string;
 
-  // Average price of a granizado
+  /** Average price of a granizado */
   @IsInt()
   @IsPositive()
   public precio_promedio: number;
 
-  // Leave it out to compute it from the recipes
+  /** Leave it out to compute it from the recipes */
   @IsInt()
   @IsPositive()
   @IsOptional()
@@ -54,14 +54,14 @@ export class UpdatePolicyDto {
   @IsOptional()
   public dias_cobertura?: number;
 
-  // Reserve goal in months of fixed costs
+  /** Reserve goal in months of fixed costs */
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   @Max(24)
   @IsOptional()
   public meses_reserva?: number;
 
-  // Suggested share of the surplus for withdrawals; the rest, for prepayments
+  /** Suggested share of the surplus for withdrawals; the rest, for prepayments */
   @IsInt()
   @Min(0)
   @Max(100)
@@ -82,14 +82,14 @@ export class UpdatePolicyDto {
 }
 
 export class PeriodQueryDto {
-  // Default: the current period
+  /** Default: the current period */
   @Matches(PERIOD, { message: PERIOD_MESSAGE })
   @IsOptional()
   public periodo?: string;
 }
 
 export class ScenariosQueryDto {
-  // Granizados per day, comma separated (?niveles=30,50,100); default: the policy levels
+  /** Granizados per day, comma separated (?niveles=30,50,100); default: the policy levels */
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.split(',').filter(Boolean).map((level) => Number(level.trim())) : value,
   )

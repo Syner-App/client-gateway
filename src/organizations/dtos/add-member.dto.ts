@@ -10,14 +10,16 @@ export class AddMemberDto {
   @IsIn(ROLES, { message: enumMessage('role', ROLES) })
   public role: Role;
 
-  // Only used (and then required) when no user has this email yet; an existing user
-  // keeps its name and password
+  /**
+   * Only used (and then required) when no user has this email yet; an existing user
+   * keeps its name and password
+   */
   @IsOptional()
   @IsString()
   @IsNotEmpty()
   public name?: string;
 
-  // Min 8 chars with at least one lowercase, uppercase, number and symbol
+  /** Min 8 chars with at least one lowercase, uppercase, number and symbol */
   @IsOptional()
   @IsString()
   @IsStrongPassword()

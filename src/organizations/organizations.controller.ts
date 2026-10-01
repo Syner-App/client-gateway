@@ -12,6 +12,7 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import type { ClientGrpc } from '@nestjs/microservices';
+import { ApiTags } from '@nestjs/swagger';
 import { AUTH_SERVICE } from '../config/index.ts';
 import {
   ORGANIZATIONS_SERVICE_NAME,
@@ -25,6 +26,7 @@ import { PlatformAdmin, User } from '../auth/decorators/index.ts';
 // Served by auth-ms, which checks the caller (requester_id) against the database again.
 // Invalid ids come back from auth-ms as INVALID_ARGUMENT (400)
 @PlatformAdmin()
+@ApiTags('Organizations')
 @Controller('organizations')
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 export class OrganizationsController implements OnModuleInit {
@@ -52,7 +54,7 @@ export class OrganizationsController implements OnModuleInit {
     return this.organizationsService.findOne({ requester_id: user.id, id });
   }
 
-  // ACTIVE | SUSPENDED
+  /** ACTIVE | SUSPENDED */
   @Patch(':id/status')
   updateOrganizationStatus(
     @Param('id') id: string,
@@ -67,7 +69,7 @@ export class OrganizationsController implements OnModuleInit {
     return this.organizationsService.findMembers({ requester_id: user.id, id });
   }
 
-  // Creates the user when the email is unknown (name and password required), then the membership
+  /** Creates the user when the email is unknown (name and password required), then the membership */
   @Post(':id/members')
   addMember(@Param('id') organization_id: string, @Body() addMemberDto: AddMemberDto, @User() user: UserResponse) {
     return this.organizationsService.addMember({ ...addMemberDto, requester_id: user.id, organization_id });

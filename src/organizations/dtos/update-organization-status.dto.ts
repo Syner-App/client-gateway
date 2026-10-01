@@ -4,7 +4,7 @@ import { enumMessage } from '../../common/index.ts';
 import { ORGANIZATION_STATUSES } from '../../auth/roles.ts';
 
 export class UpdateOrganizationStatusDto {
-  // SUSPENDED rejects every token of the organization on the next request
+  /** SUSPENDED rejects every token of the organization on the next request */
   @IsIn(ORGANIZATION_STATUSES, { message: enumMessage('status', ORGANIZATION_STATUSES) })
   public status: OrganizationStatus;
 }

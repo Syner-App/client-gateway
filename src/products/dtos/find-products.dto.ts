@@ -17,13 +17,13 @@ export class FindProductsDto extends PaginationDto {
     @IsOptional()
     public nombre?: string;
 
-    // products-ms lists only active products unless activo=false is sent
+    /** products-ms lists only active products unless activo=false is sent */
     @IsBoolean()
     @IsOptional()
     @ToBoolean()
     public activo?: boolean;
 
-    // stock_actual <= stock_minimo
+    /** stock_actual <= stock_minimo */
     @IsBoolean()
     @IsOptional()
     @ToBoolean()

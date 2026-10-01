@@ -11,6 +11,7 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import type { ClientGrpc } from '@nestjs/microservices';
+import { ApiTags } from '@nestjs/swagger';
 import { AUTH_SERVICE } from '../config/index.ts';
 import {
   AUTH_SERVICE_NAME,
@@ -22,6 +23,7 @@ import { LoginUserDto, SwitchOrganizationDto, UpdateUserRoleDto } from './dtos/i
 import { Auth, Authenticated, OrganizationId, Token, User } from './decorators/index.ts';
 
 // Users are created by the platform superadmin (POST /api/organizations/:id/members)
+@ApiTags('Auth')
 @Controller('auth')
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 export class AuthController implements OnModuleInit {
@@ -33,28 +35,30 @@ export class AuthController implements OnModuleInit {
     this.authService = this.client.getService<AuthServiceClient>(AUTH_SERVICE_NAME);
   }
 
-  // Returns the token and the active memberships. With a single membership (or with
-  // organization_id) the token is already scoped to an organization
+  /**
+   * Returns the token and the active memberships. With a single membership (or with
+   * organization_id) the token is already scoped to an organization
+   */
   @Post('login')
   loginUser(@Body() loginUserDto: LoginUserDto) {
     return this.authService.loginUser(loginUserDto);
   }
 
-  // Returns a token scoped to another organization the caller belongs to
+  /** Returns a token scoped to another organization the caller belongs to */
   @Authenticated()
   @Post('switch-organization')
   switchOrganization(@Body() { organization_id }: SwitchOrganizationDto, @User() user: UserResponse) {
     return this.authService.switchOrganization({ requester_id: user.id, organization_id });
   }
 
-  // AuthGuard already verified the token with auth-ms and got a renewed one
+  /** AuthGuard already verified the token with auth-ms and got a renewed one */
   @Authenticated()
   @Get('verify')
   verifyToken(@User() user: UserResponse, @Token() token: string) {
     return { user, token };
   }
 
-  // Owner of the active organization only. auth-ms rejects changing your own role
+  /** Owner of the active organization only. auth-ms rejects changing your own role */
   @Auth(Role.owner)
   @Patch('users/:id/role')
   updateUserRole(

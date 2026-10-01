@@ -8,7 +8,7 @@ export class LoginUserDto {
   @IsNotEmpty()
   public password: string;
 
-  // Organization to scope the token to (needed when the user belongs to several)
+  /** Organization to scope the token to (needed when the user belongs to several) */
   @IsOptional()
   @IsMongoId()
   public organization_id?: string;

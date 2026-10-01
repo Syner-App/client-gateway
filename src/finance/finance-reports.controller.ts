@@ -11,6 +11,7 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import type { ClientGrpc } from '@nestjs/microservices';
+import { ApiTags } from '@nestjs/swagger';
 import { FINANCE_SERVICE } from '../config/index.ts';
 import { FINANCE_SERVICE_NAME, type FinanceServiceClient } from '../generated/proto/finance.ts';
 import { Auth, OrganizationId, Roles } from '../auth/decorators/index.ts';
@@ -21,6 +22,7 @@ import { PeriodQueryDto, ScenariosQueryDto, SetAssumptionsDto, UpdatePolicyDto }
 // waterfall, scenarios and the dashboard that answers the owner's questions. owner/admin read
 // them; only the owner changes the policy
 @Auth(...MANAGER_ROLES)
+@ApiTags('Finance: reports')
 @Controller('finance')
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 export class FinanceReportsController implements OnModuleInit {
