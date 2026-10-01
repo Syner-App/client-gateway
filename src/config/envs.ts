@@ -12,6 +12,8 @@ interface EnvVars {
     AUTH_MICROSERVICE_PORT: number;
     FINANCE_MICROSERVICE_HOST: string;
     FINANCE_MICROSERVICE_PORT: number;
+    RABBITMQ_URL: string;
+    CORS_ORIGINS: string;
 }
 
 const envsSchema = Joi.object({
@@ -24,6 +26,9 @@ const envsSchema = Joi.object({
     AUTH_MICROSERVICE_PORT: Joi.number().required(),
     FINANCE_MICROSERVICE_HOST: Joi.string().required(),
     FINANCE_MICROSERVICE_PORT: Joi.number().required(),
+    RABBITMQ_URL: Joi.string().required(),
+    // Comma separated browser origins allowed to open the notifications socket
+    CORS_ORIGINS: Joi.string().required(),
 }).unknown(true);
 
 const { error, value } = envsSchema.validate(process.env);
@@ -44,4 +49,6 @@ export const envs = {
     authMicroservicePort: envVars.AUTH_MICROSERVICE_PORT,
     financeMicroserviceHost: envVars.FINANCE_MICROSERVICE_HOST,
     financeMicroservicePort: envVars.FINANCE_MICROSERVICE_PORT,
+    rabbitmqUrl: envVars.RABBITMQ_URL,
+    corsOrigins: envVars.CORS_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean),
 }

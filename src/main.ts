@@ -1,8 +1,9 @@
 import { HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.ts';
 import { Logger } from '@nestjs/common';
+import { type MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { envs } from './config/envs.ts';
+import { envs, NOTIFICATIONS_QUEUE, NOTIFICATIONS_QUEUE_TTL_MS, SYNER_EXCHANGE } from './config/index.ts';
 import { GrpcExceptionFilter } from './common/index.ts';
 
 async function bootstrap() {
@@ -14,6 +15,22 @@ async function bootstrap() {
 
   const { httpAdapter } = app.get(HttpAdapterHost);
   app.useGlobalFilters(new GrpcExceptionFilter(httpAdapter));
+
+  // Hybrid app: RabbitMQ consumer for the events pushed to the browser over Socket.IO
+  // (namespace /notifications). wildcards binds the queue to every @EventPattern of the app.
+  // noAck: notifications are fire-and-forget; the TTL drops the ones nobody consumed
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.RMQ,
+    options: {
+      urls: [envs.rabbitmqUrl],
+      queue: NOTIFICATIONS_QUEUE,
+      queueOptions: { durable: true, arguments: { 'x-message-ttl': NOTIFICATIONS_QUEUE_TTL_MS } },
+      exchange: SYNER_EXCHANGE,
+      exchangeType: 'topic',
+      wildcards: true,
+      noAck: true,
+    },
+  });
 
   // OpenAPI: UI at /api/docs, document at /api/docs-json
   const config = new DocumentBuilder()
@@ -29,6 +46,7 @@ async function bootstrap() {
     .addTag('Finance: ledger', 'Expenses (owner/admin); contributions, withdrawals, reserve and periods (owner)')
     .addTag('Finance: operations', 'Supplies, recipes, sales, payables and credit. Any member registers sales')
     .addTag('Finance: reports', 'Assumptions, policy and reports (owner/admin); the policy is changed by the owner')
+    .addTag('Notifications', 'Tickets for the real-time Socket.IO namespace /notifications (stock alerts)')
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, documentFactory, {
@@ -36,7 +54,9 @@ async function bootstrap() {
     swaggerOptions: { persistAuthorization: true },
   });
 
+  await app.startAllMicroservices();
   await app.listen(envs.port);
   logger.log(`App running in port ${envs.port}`)
+  logger.log(`Gateway (RMQ) consuming queue ${NOTIFICATIONS_QUEUE}`)
 }
 await bootstrap();
