@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Inject,
   OnModuleInit,
@@ -29,6 +30,7 @@ import {
   PayPayableDto,
   PrepayCreditDto,
   RegisterSaleDto,
+  UpdateCreditDto,
   UpdateRecipeDto,
   UpsertSupplyDto,
 } from './dtos/index.ts';
@@ -152,5 +154,22 @@ export class FinanceOperationsController implements OnModuleInit {
     @OrganizationId() organization_id: string,
   ) {
     return this.financeService.prepayCredit({ ...payload, id, organization_id });
+  }
+
+  @Roles(...OWNER_ROLES)
+  @Patch('credits/:id')
+  updateCredit(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() payload: UpdateCreditDto,
+    @OrganizationId() organization_id: string,
+  ) {
+    return this.financeService.updateCredit({ ...payload, id, organization_id });
+  }
+
+  /** Soft delete: the installments and prepayments already paid stay in the movements */
+  @Roles(...OWNER_ROLES)
+  @Delete('credits/:id')
+  deleteCredit(@Param('id', ParseUUIDPipe) id: string, @OrganizationId() organization_id: string) {
+    return this.financeService.deleteCredit({ id, organization_id });
   }
 }

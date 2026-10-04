@@ -363,6 +363,21 @@ export interface PrepayCreditRequest {
   fecha?: string | undefined;
 }
 
+export interface UpdateCreditRequest {
+  organization_id: string;
+  id: string;
+  nombre?: string | undefined;
+  saldo_capital?: number | undefined;
+  cuota_mensual?: number | undefined;
+  cuota_asignada?: number | undefined;
+  dia_pago?: number | undefined;
+}
+
+export interface CreditById {
+  organization_id: string;
+  id: string;
+}
+
 export interface Assumptions {
   id: string;
   vigente_desde: string;
@@ -655,6 +670,12 @@ export interface FinanceServiceClient {
 
   prepayCredit(request: PrepayCreditRequest): Observable<Credit>;
 
+  updateCredit(request: UpdateCreditRequest): Observable<Credit>;
+
+  /** soft delete: the payments are kept */
+
+  deleteCredit(request: CreditById): Observable<Credit>;
+
   /** Planning */
 
   setAssumptions(request: SetAssumptionsRequest): Observable<Assumptions>;
@@ -743,6 +764,12 @@ export interface FinanceServiceController {
 
   prepayCredit(request: PrepayCreditRequest): Promise<Credit> | Observable<Credit> | Credit;
 
+  updateCredit(request: UpdateCreditRequest): Promise<Credit> | Observable<Credit> | Credit;
+
+  /** soft delete: the payments are kept */
+
+  deleteCredit(request: CreditById): Promise<Credit> | Observable<Credit> | Credit;
+
   /** Planning */
 
   setAssumptions(request: SetAssumptionsRequest): Promise<Assumptions> | Observable<Assumptions> | Assumptions;
@@ -794,6 +821,8 @@ export function FinanceServiceControllerMethods() {
       "findCredits",
       "payInstallment",
       "prepayCredit",
+      "updateCredit",
+      "deleteCredit",
       "setAssumptions",
       "getAssumptions",
       "getPolicy",

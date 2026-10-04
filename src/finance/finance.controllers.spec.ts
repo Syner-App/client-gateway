@@ -68,7 +68,7 @@ describe('Finance controllers', () => {
 
   it.each([
     [FinanceLedgerController, ['registerContribution', 'transferReserve', 'registerWithdrawal', 'closePeriod', 'reopenPeriod']],
-    [FinanceOperationsController, ['createCredit', 'prepayCredit']],
+    [FinanceOperationsController, ['createCredit', 'prepayCredit', 'updateCredit', 'deleteCredit']],
     [FinanceReportsController, ['updatePolicy']],
   ] as const)('restricts the money decisions of %O to the owner', (controller, handlers) => {
     for (const handler of handlers) expect(rolesOf(controller, handler)).toEqual(OWNER);

@@ -180,6 +180,36 @@ export class CreateCreditDto {
   public dia_pago: number;
 }
 
+/** Corrects the data of a credit; the payments already registered are not touched */
+export class UpdateCreditDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  @IsOptional()
+  public nombre?: string;
+
+  @IsInt()
+  @IsPositive()
+  @IsOptional()
+  public saldo_capital?: number;
+
+  @IsInt()
+  @IsPositive()
+  @IsOptional()
+  public cuota_mensual?: number;
+
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  public cuota_asignada?: number;
+
+  @IsInt()
+  @Min(1)
+  @Max(31)
+  @IsOptional()
+  public dia_pago?: number;
+}
+
 export class PayInstallmentDto {
   @IsIn(CASH_ACCOUNTS, { message: enumMessage('cuenta', CASH_ACCOUNTS) })
   public cuenta: Account;

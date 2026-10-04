@@ -38,6 +38,8 @@ service FinanceService {
   rpc FindCredits (OrganizationRequest) returns (CreditList);
   rpc PayInstallment (PayInstallmentRequest) returns (Credit);
   rpc PrepayCredit (PrepayCreditRequest) returns (Credit);
+  rpc UpdateCredit (UpdateCreditRequest) returns (Credit);
+  rpc DeleteCredit (CreditById) returns (Credit); // soft delete: the payments are kept
 
   // Planning
   rpc SetAssumptions (SetAssumptionsRequest) returns (Assumptions);
@@ -403,6 +405,21 @@ message PrepayCreditRequest {
   Account cuenta = 3;
   int64 monto = 4;
   optional string fecha = 5;
+}
+
+message UpdateCreditRequest {
+  string organization_id = 1;
+  string id = 2;
+  optional string nombre = 3;
+  optional int64 saldo_capital = 4;
+  optional int64 cuota_mensual = 5;
+  optional int64 cuota_asignada = 6;
+  optional int32 dia_pago = 7;
+}
+
+message CreditById {
+  string organization_id = 1;
+  string id = 2;
 }
 
 // ---------------------------------------------------------------- Planning
